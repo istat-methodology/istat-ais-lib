@@ -21,6 +21,7 @@ pd.set_option('display.max_columns', 100)
 pd.options.mode.chained_assignment = None  # default='warn'
 
 from IPython.display import HTML
+from IPython.display import display
 import base64  
 
 import json
@@ -113,7 +114,8 @@ def displayRoute(pd_df,    start_date_filter: datetime=None, end_date_filter: da
                 color='green',
                 weight=5,
                 opacity=0.8).add_to(m)
-    display(m)   
+    display(m) 
+
 def trackRoute(pd_df,    start_date_filter: datetime=None, end_date_filter: datetime = None):
     if start_date_filter is not None:
         pd_df=pd_df[pd.to_datetime(pd_df['dt_pos_utc'])>=start_date_filter]
