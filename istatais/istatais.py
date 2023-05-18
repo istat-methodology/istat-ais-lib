@@ -27,7 +27,7 @@ import json
 import pandas as pd
 from io import StringIO
 from urllib import parse
-
+import folium
 import requests
 
 def visualize_hexagons(hexagons, color="red", folium_map=None):
