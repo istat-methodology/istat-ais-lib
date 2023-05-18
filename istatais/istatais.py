@@ -28,6 +28,8 @@ import pandas as pd
 from io import StringIO
 from urllib import parse
 import folium
+from folium import plugins
+from folium.plugins import TimestampedGeoJson
 import requests
 
 def visualize_hexagons(hexagons, color="red", folium_map=None):
@@ -86,6 +88,76 @@ def visualize_hexagonsDF(hexagons,hexagons_field, hexagons_label,color="red", fo
       
         m.add_child(my_PolyLine)
     return m
+
+def displayRoute(pd_df,    start_date_filter: datetime=None, end_date_filter: datetime = None):
+    if start_date_filter is not None:
+        pd_df=pd_df[pd.to_datetime(pd_df['dt_pos_utc'])>=start_date_filter]
+    if end_date_filter is not None:
+        pd_df=pd_df[pd.to_datetime(pd_df['dt_pos_utc'])<end_date_filter]
+     
+    pdmmsi_set=pd_df.sort_values(['imo','dt_pos_utc'], ascending=[True, True] )
+    len(pdmmsi_set)
+    m = folium.Map(location=[42.092422, 11.795413])
+    loc_red=[]
+    loc_green=[]
+    for index,coord in pdmmsi_set.iterrows():
+        if coord['sog']>0.1:
+            loc_green.append(( coord['latitude'], coord['longitude']))
+        else:
+            loc_red.append(( coord['latitude'], coord['longitude']))
+
+
+    for coord in loc_red:
+            folium.Marker( location=[ coord[0], coord[1] ], fill_color='#43d9de', radius=8 ).add_to( m )
+    folium.PolyLine(loc_green,
+                color='green',
+                weight=5,
+                opacity=0.8).add_to(m)
+    display(m)   
+def trackRoute(pd_df,    start_date_filter: datetime=None, end_date_filter: datetime = None):
+    if start_date_filter is not None:
+        pd_df=pd_df[pd.to_datetime(pd_df['dt_pos_utc'])>=start_date_filter]
+    if end_date_filter is not None:
+        pd_df=pd_df[pd.to_datetime(pd_df['dt_pos_utc'])<end_date_filter]
+     
+    sp=pd_df.sort_values(['imo','dt_pos_utc'], ascending=[True, True] )
+    len(sp)
+    m = folium.Map(location=[42.092422, 11.795413],zoom_start = 5)
+    # Lon, Lat order.
+    lines = [
+        {
+            "coordinates":[ [y,x] for x,y in zip(sp['latitude'],sp['longitude'])],
+            "dates": [str(row) for row in sp['dt_pos_utc'] ],
+            "color": "blue"
+        },    
+    ]
+    features = [
+        {
+            "type": "Feature",
+            "geometry": {
+            "type": "LineString",
+            "coordinates": line["coordinates"],
+        },
+        "properties": {
+            "times": line["dates"],
+            "style": {
+                "color": line["color"],
+                "weight": line["weight"] if "weight" in line else 5,
+            },
+        },
+    }
+        for line in lines
+    ]
+    TimestampedGeoJson(
+        {
+            "type": "FeatureCollection",
+            "features": features,
+        },
+        period="PT1M",
+        add_last_point=True,
+    ).add_to(m)
+    display(m)
+    
 
 
 def visualize_polygon(polyline, color):
