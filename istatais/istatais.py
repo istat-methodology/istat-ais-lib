@@ -70,7 +70,7 @@ def visualize_hexagonsDF(hexagons,hexagons_field, hexagons_label,color="red", fo
     lng = []
     for index,row in hexagons.iterrows():
         hex=row[hexagons_field]
-        label=row[hexagons_label]+':'+row[hexagons_field]
+        label=str(row[hexagons_label])+':'+str(row[hexagons_field])
         labels.append(label)
         polygons = h3.h3_set_to_multi_polygon([hex], geo_json=False)
         # flatten polygons into loops.
