@@ -161,7 +161,7 @@ def trackRoute(pd_df,    start_date_filter: datetime=None, end_date_filter: date
     display(m)
     
 def get_italian_ports_fitted(res=8):
-    url = 'https://raw.githubusercontent.com/istat-methodology/istat-ais/main/data/Porti_ITA_fitted_RES_'+res+'.csv'
+    url = 'https://raw.githubusercontent.com/istat-methodology/istat-ais/main/data/Porti_ITA_fitted_RES_'+str(res)+'.csv'
     porti = pd.read_csv(url, index_col=0,delimiter=';',encoding= 'ISO-8859-1')
 
     return(porti)
@@ -177,7 +177,7 @@ def displayRouteWithITAPort(pd_df,    start_date_filter: datetime=None, end_date
     
     pd_port_ita=get_italian_ports_fitted()
     
-    m=visualize_hexagonsDF(hexagons=porti_ita,hexagons_field='H3_int_index_'+res, hexagons_label='UNLocode',color="green")
+    m=visualize_hexagonsDF(hexagons=porti_ita,hexagons_field='H3_int_index_'+str(res), hexagons_label='UNLocode',color="green")
 
     loc_red=[]
     loc_green=[]
