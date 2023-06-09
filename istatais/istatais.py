@@ -177,7 +177,7 @@ def displayRouteWithITAPort(pd_df,    start_date_filter: datetime=None, end_date
     
     pd_port_ita=get_italian_ports_fitted()
     
-    m=visualize_hexagonsDF(hexagons=pd_port_ita,hexagons_field='H3_int_index_'+str(res), hexagons_label='UNLocode',color="green")
+    m=visualize_hexagonsDF(hexagons=pd_port_ita,hexagons_field='H3_hex_'+str(res), hexagons_label='UNLocode',color="green")
 
     loc_red=[]
     loc_green=[]
