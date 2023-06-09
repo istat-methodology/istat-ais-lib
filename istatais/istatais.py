@@ -90,7 +90,7 @@ def visualize_hexagonsDF(hexagons,hexagons_field, hexagons_label,color="red", fo
         m.add_child(my_PolyLine)
     return m
 
-def displayRoute(pd_df,    start_date_filter: datetime=None, end_date_filter: datetime = None):
+def displayRouteNoPort(pd_df,    start_date_filter: datetime=None, end_date_filter: datetime = None):
     if start_date_filter is not None:
         pd_df=pd_df[pd.to_datetime(pd_df['dt_pos_utc'])>=start_date_filter]
     if end_date_filter is not None:
@@ -166,7 +166,7 @@ def get_italian_ports_fitted(res=8):
 
     return(porti)
 
-def displayRouteWithITAPort(pd_df,    start_date_filter: datetime=None, end_date_filter: datetime = None,res=8):
+def displayRoute(pd_df,    start_date_filter: datetime=None, end_date_filter: datetime = None,res=8):
     if start_date_filter is not None:
         pd_df=pd_df[pd.to_datetime(pd_df['dt_pos_utc'])>=start_date_filter]
     if end_date_filter is not None:
@@ -177,7 +177,7 @@ def displayRouteWithITAPort(pd_df,    start_date_filter: datetime=None, end_date
     
     pd_port_ita=get_italian_ports_fitted()
     
-    m=visualize_hexagonsDF(hexagons=pd_port_ita,hexagons_field='H3_hex_'+str(res), hexagons_label='UNLocode',color="green")
+    m=visualize_hexagonsDF(hexagons=pd_port_ita,hexagons_field='H3_hex_'+str(res), hexagons_label='UNLocode',color="red")
 
     loc_red=[]
     loc_green=[]
