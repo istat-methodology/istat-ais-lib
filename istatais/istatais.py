@@ -175,7 +175,7 @@ def displayNO_ITAports(res=8):
     m=visualize_hexagonsDF(hexagons=get_NO_ITA_ports(res),hexagons_field='H3_hex_'+str(res), hexagons_label='UNLocode',color="green")
     display(m) 
    
- def get_NO_ITA_ports(res=8):
+def get_NO_ITA_ports(res=8):
     url = 'https://raw.githubusercontent.com/istat-methodology/istat-ais/main/data/Porti_WORLD_NO_ITA_K3_RES'+str(res)+'_NO_DUP.csv'
     porti = pd.read_csv(url, delimiter=';',encoding= 'ISO-8859-1')
     return(porti)
