@@ -2,6 +2,7 @@ import pandas as pd
 from datetime import datetime
 import numpy as np
 
+from math import radians, sin, cos, sqrt, atan2
 
 import h3
 import h3.api.numpy_int as h3int
@@ -10,7 +11,8 @@ import pyspark.sql.functions as F
 from pyspark.sql.types import DoubleType
 from pyspark.sql.types import StringType
 from pyspark.sql.types import NullType
-from pyspark.sql.functions import pandas_udf, PandasUDFType, col,to_timestamp
+from pyspark.sql.functions import pandas_udf, PandasUDFType, col,to_timestamp,desc
+import pyspark.sql.functions as F
  #allow multiple outputs in one jupyter cell
 from IPython.core.interactiveshell import InteractiveShell 
 InteractiveShell.ast_node_interactivity = "all"
@@ -228,9 +230,6 @@ def initializeEnvs(sparkLocal):
     sparkLocal.conf.set("spark.kryoserializer.buffer.mb","128")
     return sparkLocal
 
-from math import radians, sin, cos, sqrt, atan2
-
-
 ###  Function for anomaly detection ###
 
 def compute_haversine_distance(lat1, long1, lat2, long2):
@@ -337,3 +336,91 @@ def add_time_distance(df):
     
     #display(df_ship.head(5))
     return df_ship
+
+
+##############################################
+############### Funzione Conta Sparizioni 
+##############################################
+
+# The function takes a dataframe of a ship route and a Time delay in minutes
+# it checks if the ship disappeared for more than max_time_min minutes and also it reappered
+# having travelled for too short of a lenght ( seen as average_speed < min_speed)
+
+# if it doesn't, it gives an EMPTY LIST
+# if it does, it gives the number of such disappearances
+# and it gives the list with the indexes of the dataframe when the vanishing occurred
+
+# it also displays a dataframe with information of the disappearances
+
+# Also, the function stops if the max_time_delay is too short (20 minutes)
+MAX_TIME_MIN=60
+@pandas_udf("mmsi int, imo int, shipType string, n_disappear int", PandasUDFType.GROUPED_MAP)
+def time_jumps_min(df):
+
+    print('**time_jumps_min')
+    df_imo = df['imo'].unique()
+    imo = df_imo[0]
+    
+    df_mmsi = df['mmsi'].unique()
+    mmsi = df_mmsi[0]
+    
+    df_shipType = df['shipType'].unique()
+    shipType = df_shipType[0]
+    
+    # Too short a time causes huge output, 
+    # the function is meant to find big delayas
+    if MAX_TIME_MIN <= 20:
+        print('Chose a Bigger time')
+        return
+    
+    # Add Time passed between each position (DT_sec) 
+    # Add Distance travelled (Dist_km)    
+    
+    ship_td = add_time_distance(df)
+        
+    min_speed= 15
+    # natural way to get a minimum speed:
+    #mask_vd0=  df['Spd_kmh'] >0
+    #min_speed_2= df.loc[mask_vd0]['Spd_kmh'].quantile(0.20).round(2)
+    # print('velocità minima, 20-o percentile: ', min_speed_2)
+    
+    # Check if time delay is greater than max_time, Saves indeces of those occurences
+    
+    time_delay_indeces= []
+    result_df = pd.DataFrame({'mmsi': pd.Series(dtype='int'),
+                   'imo': pd.Series(dtype='int'),
+                   'shipType': pd.Series(dtype='str'),
+                   'n_disappear': pd.Series(dtype='int')})
+
+    n_disappear= int(len(time_delay_indeces)/2)
+    
+    if ( ship_td['DT_min'] > MAX_TIME_MIN).any():
+        #print(f' "Delays, Long_Time + Slow_speed" :  \n')
+        
+        mask_disappear_slow=(ship_td['DT_min']> MAX_TIME_MIN)&(ship_td['Spd_kmh']< min_speed)&(ship_td['Spd_kmh']>0.1)
+        mask_disappear_slow = mask_disappear_slow | mask_disappear_slow.shift(+1)
+        
+        ship_td_disappear_and_slow = ship_td.loc[mask_disappear_slow]
+        #display(ship_td_disappear_and_slow)
+        
+        delays_indeces_new= ship_td_disappear_and_slow.index
+        delays_indeces_old= ship_td.iloc[delays_indeces_new]['old_ind'].values
+
+        # Also add indexes when ship reappeared, they are just the subsequent indexes
+        # Print a dataframe with useful data at time delays, and delays in minutes
+        
+        time_delay_indeces= delays_indeces_old.tolist()
+        n_disappear= int(len(time_delay_indeces)/2)
+        ##return n_disappear, time_delay_indeces
+        
+        new_row = {'mmsi': mmsi,'imo':imo,'shipType':shipType,'n_disappear':n_disappear}
+        result_df = result_df.append(new_row, ignore_index=True)        
+        return(result_df)
+    else:
+        print('**Good, No Delays')
+    
+    new_row = {'mmsi': mmsi,'imo':imo,'shipType':shipType,'n_disappear':n_disappear}
+    result_df = result_df.append(new_row, ignore_index=True)
+    return(result_df)
+    ##return n_disappear, time_delay_indeces
+
