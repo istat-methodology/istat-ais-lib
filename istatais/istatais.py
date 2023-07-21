@@ -227,3 +227,201 @@ def initializeEnvs(sparkLocal):
     sparkLocal.conf.set("spark.executor.extraJavaOptions", "-Dio.netty.tryReflectionSetAccessible=true")
     sparkLocal.conf.set("spark.kryoserializer.buffer.mb","128")
     return sparkLocal
+
+from math import radians, sin, cos, sqrt, atan2
+
+
+###  Function for anomaly detection ###
+
+def compute_haversine_distance(lat1, long1, lat2, long2):
+    R = 6371.0  # radius of the Earth in km
+
+    lat1_rad = radians(lat1)
+    long1_rad = radians(long1)
+    lat2_rad = radians(lat2)
+    long2_rad = radians(long2)
+
+    dlon = long2_rad - long1_rad
+    dlat = lat2_rad - lat1_rad
+
+    a = sin(dlat / 2)**2 + cos(lat1_rad) * cos(lat2_rad) * sin(dlon / 2)**2
+    c = 2 * atan2(sqrt(a), sqrt(1 - a))
+
+    distance = R * c
+    return distance
+
+
+##############################################
+############ Function to move columns of a 
+############ dataframe
+##############################################
+
+def move_column(df, col_name, new_col_position):
+    col_position = df.columns.get_loc(col_name)
+    
+    # if col_name is already in the new_col_position we want it to be, leave it as it is
+    if col_position != new_col_position:
+        target_col = df.pop(col_name)
+        df.insert(new_col_position, target_col.name, target_col)
+        
+        
+##############################################
+############### Function to add time-space and
+############### speed
+##############################################
+
+# Add time passed between position (DT_sec) , also in minutes (DT_min)
+# Add Distance travelled by ship (Dist_km)
+# Add Average Speed of the ship during DT_sec, (Spd_kmh)
+
+# start making a copy of the df, to avoid changing the starting df !!
+
+MAX_TIME_MIN = 60 
+
+def add_time_distance(df):
+    
+    if 'Dist_km' not in df.columns:
+    
+        # Only useful columns
+         #new_col= ['longitude', 'latitude','dt_pos_utc', 'sog', 'cog', 'rot', 'heading',
+              #'H3_int_index_5','H3_int_index_6', 'H3_int_index_7','H3_int_index_8',
+              #'imo','vessel_name', 'destination', 'dt_insert_utc','dt_static_utc']
+        
+        new_col = ['mmsi',"imo","latitude","longitude","vessel_name","shipType",'dt_pos_utc','sog','cog','H3_int_index_8']
+        #new_col= ['longitude', 'latitude','dt_pos_utc','sog','H3_int_index_8','imo','vessel_name']
+
+        df = df[ new_col ].copy()
+
+        #Make sure the 'dt_pos_utc' is in TIME format
+        df['dt_pos_utc'] = pd.to_datetime( df['dt_pos_utc'] )
+        
+        # Sort time movement in correct time order, keep the old index 
+        df = df.sort_values('dt_pos_utc').reset_index().rename(columns={'index':'old_ind'})
+    
+    #Compute time passed at each position
+    Diff= df['dt_pos_utc'].diff().shift(-1)
+
+    Diff_sec= Diff.dt.total_seconds().round(0)
+    Diff_min= (Diff.dt.total_seconds()/60).round(3)
+
+    df_ship = df.copy()
+    
+    df_ship['DT_sec'] = Diff_sec
+    df_ship['DT_min'] = Diff_min
+
+    # Place those columns after 'dt_pos_utc'
+    time_col_position= df_ship.columns.get_loc('dt_pos_utc')
+    move_column( df_ship, 'DT_sec', time_col_position + 1  )
+    move_column( df_ship, 'DT_min', time_col_position + 2  )
+    
+    # Compute distance , Place subsequent long and lat in the same row, to apply function
+    df_ship['Long_2'] = df_ship['longitude'].shift(-1)
+    df_ship['Lat_2'] = df_ship['latitude'].shift(-1)
+    
+    # Function necessary to be applied on DF
+   # def compute_distance(row):
+    #    coord1 = (row['latitude'], row['longitude'])
+    #    coord2 = (row['Lat_2'], row['Long_2'])
+    #    return haversine(coord1, coord2, unit='km')
+    
+    def compute_distance(row):        
+        return compute_haversine_distance(row['latitude'], row['longitude'], row['Lat_2'], row['Long_2'])
+        
+    df_ship['Dist_km'] = df_ship.apply( compute_distance, axis=1 ).round(4)
+    move_column( df_ship, 'Dist_km', df_ship.columns.get_loc('DT_min') +1  )
+    
+    df_ship['Spd_kmh'] = 3600*(df_ship['Dist_km'] / df_ship['DT_sec']).round(4)
+    move_column( df_ship, 'Spd_kmh', df_ship.columns.get_loc('Dist_km') +1  )
+
+    df_ship.drop(['Long_2', 'Lat_2'], axis=1, inplace=True)
+    
+    #display(df_ship.head(5))
+    return df_ship
+
+
+##############################################
+############### Function to count 
+############### disappearances 
+##############################################
+
+# The function takes a dataframe of a ship route and a Time delay in minutes
+# it checks if the ship disappeared for more than max_time_min minutes and also it reappered
+# having travelled for too short of a lenght ( seen as average_speed < min_speed)
+
+# if it doesn't, it gives an EMPTY LIST
+# if it does, it gives the number of such disappearances
+# and it gives the list with the indexes of the dataframe when the vanishing occurred
+
+# it also displays a dataframe with information of the disappearances
+
+# Also, the function stops if the max_time_delay is too short (20 minutes)
+
+@pandas_udf("mmsi int, imo int, shipType string, n_disappear int", PandasUDFType.GROUPED_MAP)
+def time_jumps_min(df):
+
+    print('**time_jumps_min')
+    df_imo = df['imo'].unique()
+    imo = df_imo[0]
+    
+    df_mmsi = df['mmsi'].unique()
+    mmsi = df_mmsi[0]
+    
+    df_shipType = df['shipType'].unique()
+    shipType = df_shipType[0]
+    
+    # Too short a time causes huge output, 
+    # the function is meant to find big delayas
+    if MAX_TIME_MIN <= 20:
+        print('Chose a Bigger time')
+        return
+    
+    # Add Time passed between each position (DT_sec) 
+    # Add Distance travelled (Dist_km)    
+    
+    ship_td = add_time_distance(df)
+        
+    min_speed= 15
+    # natural way to get a minimum speed:
+    #mask_vd0=  df['Spd_kmh'] >0
+    #min_speed_2= df.loc[mask_vd0]['Spd_kmh'].quantile(0.20).round(2)
+    # print('velocità minima, 20-o percentile: ', min_speed_2)
+    
+    # Check if time delay is greater than max_time, Saves indeces of those occurences
+    
+    time_delay_indeces= []
+    result_df = pd.DataFrame({'mmsi': pd.Series(dtype='int'),
+                   'imo': pd.Series(dtype='int'),
+                   'shipType': pd.Series(dtype='str'),
+                   'n_disappear': pd.Series(dtype='int')})
+
+    n_disappear= int(len(time_delay_indeces)/2)
+    
+    if ( ship_td['DT_min'] > MAX_TIME_MIN).any():
+        #print(f' "Delays, Long_Time + Slow_speed" :  \n')
+        
+        mask_disappear_slow=(ship_td['DT_min']> MAX_TIME_MIN)&(ship_td['Spd_kmh']< min_speed)&(ship_td['Spd_kmh']>0.1)
+        mask_disappear_slow = mask_disappear_slow | mask_disappear_slow.shift(+1)
+        
+        ship_td_disappear_and_slow = ship_td.loc[mask_disappear_slow]
+        #display(ship_td_disappear_and_slow)
+        
+        delays_indeces_new= ship_td_disappear_and_slow.index
+        delays_indeces_old= ship_td.iloc[delays_indeces_new]['old_ind'].values
+
+        # Also add indexes when ship reappeared, they are just the subsequent indexes
+        # Print a dataframe with useful data at time delays, and delays in minutes
+        
+        time_delay_indeces= delays_indeces_old.tolist()
+        n_disappear= int(len(time_delay_indeces)/2)
+        ##return n_disappear, time_delay_indeces
+        
+        new_row = {'mmsi': mmsi,'imo':imo,'shipType':shipType,'n_disappear':n_disappear}
+        result_df = result_df.append(new_row, ignore_index=True)        
+        return(result_df)
+    else:
+        print('**Good, No Delays')
+    
+    new_row = {'mmsi': mmsi,'imo':imo,'shipType':shipType,'n_disappear':n_disappear}
+    result_df = result_df.append(new_row, ignore_index=True)
+    return(result_df)
+    ##return n_disappear, time_delay_indeces
