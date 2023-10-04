@@ -354,8 +354,8 @@ def add_time_distance(df):
 
 # Also, the function stops if the max_time_delay is too short (20 minutes)
 MAX_TIME_MIN=60
-@pandas_udf("mmsi int, imo int, shipType string, n_disappear int", PandasUDFType.GROUPED_MAP)
-def time_jumps_min(df):
+# @pandas_udf("mmsi int, imo int, shipType string, n_disappear int", PandasUDFType.GROUPED_MAP)
+def time_jumps_min_old(df):
 
     print('**time_jumps_min')
     df_imo = df['imo'].unique()
