@@ -424,3 +424,22 @@ def time_jumps_min_old(df):
     return(result_df)
     ##return n_disappear, time_delay_indeces
 
+@pandas_udf("imo int, distance double", PandasUDFType.GROUPED_MAP)
+def distance_haversine(df):
+ 
+    df_imo = df['imo'].unique()
+    imo = df_imo[0]
+    
+    lat1 = 28.98131333
+    lon1 = 111.87894667
+    lat2 = 30.98131333
+    lon2 = 110.87894667
+    result =  ia.compute_haversine_distance(lat1, lon1, lat2, lon2)
+    
+    time_delay_indexes= []
+    result_df = pd.DataFrame({'imo': pd.Series(dtype='int'),
+                   'distance': pd.Series(dtype='double')})
+
+    new_row = {'imo':imo,'distance':result}
+    result_df = result_df.append(new_row, ignore_index=True)        
+    return(result_df)
