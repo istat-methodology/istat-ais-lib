@@ -434,7 +434,7 @@ def distance_haversine(df):
     lon1 = 111.87894667
     lat2 = 30.98131333
     lon2 = 110.87894667
-    result =  ia.compute_haversine_distance(lat1, lon1, lat2, lon2)
+    result =  compute_haversine_distance(lat1, lon1, lat2, lon2)
     
     time_delay_indexes= []
     result_df = pd.DataFrame({'imo': pd.Series(dtype='int'),
