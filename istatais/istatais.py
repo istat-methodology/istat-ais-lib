@@ -281,12 +281,9 @@ def add_time_distance(df):
     
     if 'Dist_km' not in df.columns:
     
-        # Only useful columns
-         #new_col= ['longitude', 'latitude','dt_pos_utc', 'sog', 'cog', 'rot', 'heading',
-              #'H3_int_index_5','H3_int_index_6', 'H3_int_index_7','H3_int_index_8',
-              #'imo','vessel_name', 'destination', 'dt_insert_utc','dt_static_utc']
+        # Only useful columns      
         
-        new_col = ['mmsi',"imo","latitude","longitude","vessel_name","shipType",'dt_pos_utc','sog','cog','H3_int_index_8']
+        new_col = ['mmsi',"imo","latitude","longitude","vessel_name",'dt_pos_utc','sog','cog','destination','eta','H3_int_index_8']
         #new_col= ['longitude', 'latitude','dt_pos_utc','sog','H3_int_index_8','imo','vessel_name']
 
         df = df[ new_col ].copy()
