@@ -53,7 +53,7 @@ def visualize_hexagons(hexagons, color="red", folium_map=None):
         polylines.append(polyline)
     
     if folium_map is None:
-        m = folium.Map(location=[sum(lat)/len(lat), sum(lng)/len(lng)], zoom_start=5, tiles='cartodbpositron')
+        m = folium.Map(location=[sum(lat)/len(lat), sum(lng)/len(lng)], zoom_start=6, tiles='cartodbpositron')
     else:
         m = folium_map
     for polyline in polylines:
@@ -83,7 +83,7 @@ def visualize_hexagonsDF(hexagons,hexagons_field, hexagons_label,color="red", fo
         polylines.append(polyline)
     
     if folium_map is None:
-        m = folium.Map(location=[sum(lat)/len(lat), sum(lng)/len(lng)], zoom_start=5, tiles='cartodbpositron')
+        m = folium.Map(location=[sum(lat)/len(lat), sum(lng)/len(lng)], zoom_start=6, tiles='cartodbpositron')
     else:
         m = folium_map
     for index,polyline in enumerate(polylines):
@@ -126,7 +126,7 @@ def trackRoute(pd_df,    start_date_filter: datetime=None, end_date_filter: date
      
     sp=pd_df.sort_values(['imo','dt_pos_utc'], ascending=[True, True] )
     len(sp)
-    #m = folium.Map(location=[42.092422, 11.795413],zoom_start = 5)
+    #m = folium.Map(location=[42.092422, 11.795413],zoom_start = 6)
     pd_port_ita=get_italian_ports_fitted()
     m=visualize_hexagonsDF(hexagons=pd_port_ita,hexagons_field='H3_hex_'+str(res), hexagons_label='UNLocode',color="red")
     # Lon, Lat order.
