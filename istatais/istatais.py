@@ -53,7 +53,7 @@ def visualize_hexagons(hexagons, color="red", folium_map=None):
         polylines.append(polyline)
     
     if folium_map is None:
-        m = folium.Map(location=[sum(lat)/len(lat), sum(lng)/len(lng)], zoom_start=16, tiles='cartodbpositron')
+        m = folium.Map(location=[sum(lat)/len(lat), sum(lng)/len(lng)], zoom_start=5, tiles='cartodbpositron')
     else:
         m = folium_map
     for polyline in polylines:
