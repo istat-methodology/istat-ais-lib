@@ -6,7 +6,6 @@ from math import radians, sin, cos, sqrt, atan2
 
 import h3
 import h3.api.numpy_int as h3int
-import pyspark.sql.functions as F
 
 from pyspark.sql.types import DoubleType
 from pyspark.sql.types import StringType
@@ -17,7 +16,6 @@ import pyspark.sql.functions as F
 from IPython.core.interactiveshell import InteractiveShell 
 InteractiveShell.ast_node_interactivity = "all"
 
-
 pd.set_option('display.max_rows', 100)
 pd.set_option('display.max_columns', 100)
 pd.options.mode.chained_assignment = None  # default='warn'
@@ -27,7 +25,6 @@ from IPython.display import display
 import base64  
 
 import json
-import pandas as pd
 from io import StringIO
 from urllib import parse
 import folium
@@ -35,7 +32,7 @@ from folium import plugins
 from folium.plugins import TimestampedGeoJson
 import requests
 
-def visualize_hexagons(hexagons, color="red", folium_map=None):
+def visualize_hexagons(hexagons, color="red", map_center=None, folium_map=None):
     """
     hexagons is a list of hexcluster. Each hexcluster is a list of hexagons. 
     eg. [[hex1, hex2], [hex3, hex4]]
@@ -51,9 +48,12 @@ def visualize_hexagons(hexagons, color="red", folium_map=None):
         lat.extend(map(lambda v:v[0],polyline))
         lng.extend(map(lambda v:v[1],polyline))
         polylines.append(polyline)
+
+    if map_center is None:
+        map_center = [sum(lat)/len(lat),sum(lng)/len(lng)]
     
     if folium_map is None:
-        m = folium.Map(location=[sum(lat)/len(lat), sum(lng)/len(lng)], zoom_start=6, tiles='cartodbpositron')
+        m = folium.Map(location=[map_center[0], map_center[1]], zoom_start=6, tiles='cartodbpositron')
     else:
         m = folium_map
     for polyline in polylines:
@@ -61,7 +61,7 @@ def visualize_hexagons(hexagons, color="red", folium_map=None):
         m.add_child(my_PolyLine)
     return m
 
-def visualize_hexagonsDF(hexagons,hexagons_field, hexagons_label,color="red", folium_map=None):
+def visualize_hexagonsDF(hexagons,hexagons_field, hexagons_label,color="red", map_center=None, folium_map=None):
     """
     hexagons is a list of hexcluster. Each hexcluster is a list of hexagons. 
     eg. [[hex1, hex2], [hex3, hex4]]
@@ -70,6 +70,7 @@ def visualize_hexagonsDF(hexagons,hexagons_field, hexagons_label,color="red", fo
     labels = []
     lat = []
     lng = []
+
     for index,row in hexagons.iterrows():
         hex=row[hexagons_field]
         label=str(row[hexagons_label])+':'+str(row[hexagons_field])
@@ -81,9 +82,12 @@ def visualize_hexagonsDF(hexagons,hexagons_field, hexagons_label,color="red", fo
         lat.extend(map(lambda v:v[0],polyline))
         lng.extend(map(lambda v:v[1],polyline))
         polylines.append(polyline)
+
+    if map_center is None:
+        map_center = [sum(lat)/len(lat),sum(lng)/len(lng)]
     
     if folium_map is None:
-        m = folium.Map(location=[sum(lat)/len(lat), sum(lng)/len(lng)], zoom_start=6, tiles='cartodbpositron')
+        m = folium.Map(location=[map_center[0], map_center[1]], zoom_start=6, tiles='cartodbpositron')
     else:
         m = folium_map
     for index,polyline in enumerate(polylines):
@@ -100,7 +104,9 @@ def displayRouteNoPort(pd_df,    start_date_filter: datetime=None, end_date_filt
      
     pdmmsi_set=pd_df.sort_values(['imo','dt_pos_utc'], ascending=[True, True] )
     len(pdmmsi_set)
-    m = folium.Map(location=[42.092422, 11.795413])
+    
+    center_lat_long = [pd_df["latitude"].mean(),pd_df["longitude"].mean()]
+    m = folium.Map(location=[center_lat_long[0],center_lat_long[1]])
     loc_red=[]
     loc_green=[]
     for index,coord in pdmmsi_set.iterrows():
@@ -128,7 +134,9 @@ def trackRoute(pd_df,    start_date_filter: datetime=None, end_date_filter: date
     len(sp)
     #m = folium.Map(location=[42.092422, 11.795413],zoom_start = 6)
     pd_port_ita=get_italian_ports_fitted()
-    m=visualize_hexagonsDF(hexagons=pd_port_ita,hexagons_field='H3_hex_'+str(res), hexagons_label='UNLocode',color="red")
+    
+    center_lat_long = [pd_df["latitude"].mean(),pd_df["longitude"].mean()]
+    m=visualize_hexagonsDF(hexagons=pd_port_ita,hexagons_field='H3_hex_'+str(res), hexagons_label='UNLocode',color="red",map_center = center_lat_long)
     # Lon, Lat order.
     lines = [
         {
@@ -193,7 +201,8 @@ def displayRoute(pd_df,    start_date_filter: datetime=None, end_date_filter: da
     
     pd_port_ita=get_italian_ports_fitted()
     
-    m=visualize_hexagonsDF(hexagons=pd_port_ita,hexagons_field='H3_hex_'+str(res), hexagons_label='UNLocode',color="red")
+    center_lat_long = [pd_df["latitude"].mean(),pd_df["longitude"].mean()]    
+    m=visualize_hexagonsDF(hexagons=pd_port_ita,hexagons_field='H3_hex_'+str(res), hexagons_label='UNLocode',color="red",map_center = center_lat_long)
 
     loc_red=[]
     loc_green=[]
