@@ -31,6 +31,23 @@ import folium
 from folium import plugins
 from folium.plugins import TimestampedGeoJson
 import requests
+import matplotlib.colors as mcolors
+import random
+
+def get_color(cog):
+    
+    if (cog >= 0.0) & (cog <= 90.0):
+        return "purple";
+    elif (cog > 90.0) & (cog <= 180.0):
+        return "green";
+    elif (cog > 180.0) & (cog <= 270.0):
+        return "blue";
+    else:
+        return "yellow";
+
+def random_color_generator():
+    color = random.choice(list(mcolors.CSS4_COLORS.keys()))
+    return color
 
 def visualize_hexagons(hexagons, color="red", map_center=None, folium_map=None):
     """
@@ -220,7 +237,45 @@ def displayRoute(pd_df,    start_date_filter: datetime=None, end_date_filter: da
                 weight=5,
                 opacity=0.8).add_to(m)
     display(m) 
-   
+
+
+def displayRoute_points(pd_df, start_date_filter: datetime=None, end_date_filter: datetime = None,res=8):
+    if start_date_filter is not None:
+        pd_df=pd_df[pd.to_datetime(pd_df['dt_pos_utc'])>=start_date_filter]
+    if end_date_filter is not None:
+        pd_df=pd_df[pd.to_datetime(pd_df['dt_pos_utc'])<end_date_filter]
+     
+    pdmmsi_set=pd_df.sort_values(['imo','dt_pos_utc'], ascending=[True, True] )
+    #len(pdmmsi_set)
+    
+    pd_port_ita=get_italian_ports_fitted()
+        
+    center_lat_long = [pd_df["latitude"].mean(),pd_df["longitude"].mean()]
+    m=visualize_hexagonsDF(hexagons=pd_port_ita,hexagons_field='H3_hex_'+str(res), hexagons_label='UNLocode',color="red", map_center=center_lat_long)
+
+    loc_red=[]
+    loc_green=[]
+
+    for index,coord in pdmmsi_set.iterrows():
+        
+        
+        if coord['sog']>0.1:
+            loc_green.append(( coord['latitude'], coord['longitude'], coord['sog'], coord['cog'], coord['dt_pos_utc'], coord['heading']))
+        else:
+            loc_red.append(( coord['latitude'], coord['longitude'], coord['sog'], coord['cog'], coord['dt_pos_utc'], coord['heading']))
+
+    for coord in loc_green:
+            label = "SOG: "+ str(coord[2]) + "; COG: " + str(coord[5]) + "\n\n" + str(coord[4])
+            rotation =coord[5]
+            folium.RegularPolygonMarker(location=[ coord[0], coord[1] ], color =get_color(coord[3]), fill='True', number_of_sides=3, radius=10, rotation=rotation, popup=label).add_to(m)
+    
+    for coord in loc_red:
+            folium.Marker( location=[ coord[0], coord[1] ], fill_color='#43d9de', color ='red', radius=8).add_to( m )           
+
+    display(m)
+
+
+
 def visualize_polygon(polyline, color):
     polyline.append(polyline[0])
     lat = [p[0] for p in polyline]
