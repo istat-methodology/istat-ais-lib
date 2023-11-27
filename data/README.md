@@ -13,3 +13,7 @@ Lookup table of non italian ports hexagons (resolution 8), including the ring of
 
 ### porti1h3_res7_ring1.csv
 Lookup table of  italian ports hexagons (resolution 7), including the ring of level 1 , obtained from the ports locations (latitude,longitude)
+
+### Porti_WORLD_just_coord.csv
+Lookup table with the coordinates of ALL ports worldwide,  it doesn't include hexagon data.
+It's meant for a fast check on port locations.
