@@ -17,3 +17,6 @@ Lookup table of  italian ports hexagons (resolution 7), including the ring of le
 ### Porti_WORLD_just_coord.csv
 Lookup table with the coordinates of ALL ports worldwide,  it doesn't include hexagon data.
 It's meant for a fast check on port locations.
+
+### italy_administrative_boundaries_national_polygon.geojson
+Geojson representation of italian boundaries, including sea
