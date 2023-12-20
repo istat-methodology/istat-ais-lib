@@ -20,3 +20,6 @@ It's meant for a fast check on port locations.
 
 ### italy_administrative_boundaries_national_polygon.geojson
 Geojson representation of italian boundaries, including sea
+
+### UNLocode_full.csv
+List of all UNLocode (site: https://unece.org/trade/cefact/unlocode-code-list-country-and-territory)
