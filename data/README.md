@@ -11,6 +11,9 @@ that is hexagons shared between different ports.
 ### Porti_WORLD_NO_ITA_K3_RES8_NO_DUP.csv
 Lookup table of non italian ports hexagons (resolution 8), including the ring of level 1, 2 and 3, obtained from the ports locations (latitude,longitude). This lookup table does not contain duplicated hexagons, that is hexagons shared between different ports. This is the lookup table we are actually using in the notebooks.
 
+### Porti_WORLD_NO_ITA_K3_RES8_NO_DUP_v2.csv
+New version of the previous file (Porti_WORLD_NO_ITA_K3_RES8_NO_DUP.csv), where new UNLocode ports are calculated (source UNECE, see UNLocode_full.csv)
+
 ### porti1h3_res7_ring1.csv
 Lookup table of  italian ports hexagons (resolution 7), including the ring of level 1 , obtained from the ports locations (latitude,longitude)
 
