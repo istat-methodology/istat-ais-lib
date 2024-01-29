@@ -350,7 +350,7 @@ def add_time_distance(df):
         #new_col = ['mmsi',"imo","latitude","longitude","vessel_name",'dt_pos_utc','sog','cog','destination','eta','H3_int_index_8']
         #new_col= ['longitude', 'latitude','dt_pos_utc','sog','H3_int_index_8','imo','vessel_name']
         new_col = ['mmsi','imo','callsign','latitude','longitude','vessel_name','dt_pos_utc','sog','cog','nav_status',
-            'flag_code','destination','H3_int_index_8','gt','shipType','NT','DWT','cod_Eurostat']
+            'flag_code','destination','H3_int_index_8','gt','shipType','NT','DWT','StatCode5','TEU','speedMax','cod_Eurostat']
 
         df = df[ new_col ].copy()
 
