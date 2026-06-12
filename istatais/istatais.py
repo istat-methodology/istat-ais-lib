@@ -51,66 +51,92 @@ def random_color_generator():
 
 def visualize_hexagons(hexagons, color="red", map_center=None, folium_map=None):
     """
-    hexagons is a list of hexcluster. Each hexcluster is a list of hexagons. 
-    eg. [[hex1, hex2], [hex3, hex4]]
+    hexagons is a list of H3 cell IDs.
+    Example:
+        [hex1, hex2, hex3]
     """
     polylines = []
     lat = []
     lng = []
-    for hex in hexagons:
-        polygons = h3.h3_set_to_multi_polygon([hex], geo_json=False)
-        # flatten polygons into loops.
-        outlines = [loop for polygon in polygons for loop in polygon]
-        polyline = [outline + [outline[0]] for outline in outlines][0]
-        lat.extend(map(lambda v:v[0],polyline))
-        lng.extend(map(lambda v:v[1],polyline))
+
+    for hex_id in hexagons:
+        # h3-py v4 replacement for h3_set_to_multi_polygon([hex_id])
+        boundary = list(h3.cell_to_boundary(hex_id))  # [(lat, lng), ...]
+
+        # Close the polygon by repeating the first point at the end
+        polyline = boundary + [boundary[0]]
+
+        lat.extend(v[0] for v in polyline)
+        lng.extend(v[1] for v in polyline)
         polylines.append(polyline)
 
     if map_center is None:
-        map_center = [sum(lat)/len(lat),sum(lng)/len(lng)]
-    
+        map_center = [sum(lat) / len(lat), sum(lng) / len(lng)]
+
     if folium_map is None:
-        m = folium.Map(location=[map_center[0], map_center[1]], zoom_start=6, tiles='cartodbpositron')
+        m = folium.Map(
+            location=[map_center[0], map_center[1]],
+            zoom_start=6,
+            tiles="cartodbpositron"
+        )
     else:
         m = folium_map
-    for polyline in polylines:
-        my_PolyLine=folium.PolyLine(locations=polyline,weight=8,color=color)
-        m.add_child(my_PolyLine)
-    return m
 
-def visualize_hexagonsDF(hexagons,hexagons_field, hexagons_label,color="red", map_center=None, folium_map=None):
+    for polyline in polylines:
+        my_PolyLine = folium.PolyLine(
+            locations=polyline,
+            weight=8,
+            color=color
+        )
+        m.add_child(my_PolyLine)
+
+    return m
+ 
+def visualize_hexagonsDF(hexagons, hexagons_field, hexagons_label,
+                         color="red", map_center=None, folium_map=None):
     """
-    hexagons is a list of hexcluster. Each hexcluster is a list of hexagons. 
-    eg. [[hex1, hex2], [hex3, hex4]]
+    hexagons is a DataFrame containing H3 cell IDs.
     """
     polylines = []
     labels = []
     lat = []
     lng = []
 
-    for index,row in hexagons.iterrows():
-        hex=row[hexagons_field]
-        label=str(row[hexagons_label])+':'+str(row[hexagons_field])
+    for index, row in hexagons.iterrows():
+        hex_id = row[hexagons_field]
+        label = str(row[hexagons_label]) + ':' + str(hex_id)
         labels.append(label)
-        polygons = h3.h3_set_to_multi_polygon([hex], geo_json=False)
-        # flatten polygons into loops.
-        outlines = [loop for polygon in polygons for loop in polygon]
-        polyline = [outline + [outline[0]] for outline in outlines][0]
-        lat.extend(map(lambda v:v[0],polyline))
-        lng.extend(map(lambda v:v[1],polyline))
+
+        # h3-py v4 replacement for drawing a single cell boundary
+        boundary = list(h3.cell_to_boundary(hex_id))   # [(lat, lng), ...]
+        polyline = boundary + [boundary[0]]            # close the polygon
+
+        lat.extend(v[0] for v in polyline)
+        lng.extend(v[1] for v in polyline)
         polylines.append(polyline)
 
     if map_center is None:
-        map_center = [sum(lat)/len(lat),sum(lng)/len(lng)]
-    
+        map_center = [sum(lat) / len(lat), sum(lng) / len(lng)]
+
     if folium_map is None:
-        m = folium.Map(location=[map_center[0], map_center[1]], zoom_start=6, tiles='cartodbpositron')
+        m = folium.Map(
+            location=[map_center[0], map_center[1]],
+            zoom_start=6,
+            tiles='cartodbpositron'
+        )
     else:
         m = folium_map
-    for index,polyline in enumerate(polylines):
-        my_PolyLine=folium.PolyLine(locations=polyline,tooltip=labels[index],weight=8,color=color,popup=labels[index])
-      
+
+    for index, polyline in enumerate(polylines):
+        my_PolyLine = folium.PolyLine(
+            locations=polyline,
+            tooltip=labels[index],
+            weight=8,
+            color=color,
+            popup=labels[index]
+        )
         m.add_child(my_PolyLine)
+
     return m
 
 def displayRouteNoPort(pd_df,    start_date_filter: datetime=None, end_date_filter: datetime = None):
